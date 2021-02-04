@@ -26,6 +26,7 @@
     "node": ">=14.00.0"
   },
   "dependencies": {
+    "dependency-cruiser": "^9.22.0",
     "meow": "^9.0.0",
     "shellac": "^0.4.1"
   },
