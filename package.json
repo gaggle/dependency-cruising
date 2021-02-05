@@ -26,7 +26,7 @@
     "node": ">=14.00.0"
   },
   "dependencies": {
-    "dependency-cruiser": "^9.22.0",
+    "dependency-cruiser": "^9.22.1",
     "jsdom": "^16.4.0",
     "meow": "^9.0.0"
   },
