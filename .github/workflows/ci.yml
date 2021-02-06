@@ -10,3 +10,4 @@ jobs:
       - run: npm ci
       - run: npm run docker:build
       - run: npm run test:integration
+    timeout-minutes: 5
