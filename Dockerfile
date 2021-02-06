@@ -1,6 +1,9 @@
 FROM node:14-alpine AS base
 
 FROM base AS build
+RUN apk --update add \
+    git \
+ && rm -f /var/cache/apk/*
 WORKDIR /build
 COPY package*.json ./
 RUN npm ci
