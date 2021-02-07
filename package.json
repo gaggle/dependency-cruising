@@ -11,6 +11,7 @@
     "build:fixcli": "sed -i.bak 's/env ts-node/env node/' dist/cli.* && rm -f dist/cli.*.bak && chmod +x dist/cli.js",
     "clean": "rm -rf .docker dependency-report dist",
     "docker:build": "DOCKER_BUILDKIT=1 docker build -t dependency-cruising .",
+    "docker:run": "docker run --rm -it --user \"$(id -u):$(id -g)\" -v \"$(pwd)\":/code -w /code dependency-cruising",
     "lint": "eslint . --ext .ts",
     "lint:fix": "npm run lint -- --fix",
     "test": "jest --testPathIgnorePatterns=integration-test",
