@@ -9,6 +9,7 @@
   "scripts": {
     "build": "rm -rf dist && tsc --build && npm run build:fixcli",
     "build:fixcli": "sed -i.bak 's/env ts-node/env node/' dist/cli.* && rm -f dist/cli.*.bak && chmod +x dist/cli.js",
+    "clean": "rm -rf .docker dependency-report dist",
     "docker:build": "DOCKER_BUILDKIT=1 docker build -t dependency-cruising .",
     "lint": "eslint . --ext .ts",
     "lint:fix": "npm run lint -- --fix",
