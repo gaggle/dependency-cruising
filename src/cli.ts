@@ -47,7 +47,6 @@ async function normalizeFlags (flags: typeof cli.flags): Promise<typeof cli.flag
       stats = undefined
     }
     if (stats && !stats.isDirectory()) throw new Error(`${flags.output} is not a directory`)
-    await fs.mkdir(flags.output, { recursive: true })
     flags.output = resolve(flags.output)
   }
 
