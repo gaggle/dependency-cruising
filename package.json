@@ -35,11 +35,15 @@
   },
   "dependencies": {
     "dependency-cruiser": "gaggle/dependency-cruiser",
+    "fs-extra": "^9.1.0",
     "jsdom": "^16.4.0",
-    "meow": "^9.0.0"
+    "meow": "^9.0.0",
+    "tmp-promise": "^3.0.2",
+    "tree-cli": "^0.6.7"
   },
   "devDependencies": {
     "@tsconfig/node14": "^1.0.0",
+    "@types/fs-extra": "^9.0.6",
     "@types/jest": "^26.0.20",
     "@types/jsdom": "^16.2.6",
     "@typescript-eslint/eslint-plugin": "^4.14.2",
