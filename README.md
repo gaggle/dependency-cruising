@@ -6,7 +6,7 @@ Generate interactive HTML dependency diagrams, like this:
 _Click the nodes to traverse the dependency tree._
 
 ---
-This is an easy-to-use and opinionated Docker wrapper around the amazing
+This is made possible by calling into the amazing
 [dependency cruiser](https://github.com/sverweij/dependency-cruiser) tool.
 
 ## Usage
