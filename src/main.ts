@@ -111,8 +111,7 @@ async function toHtml (cruiseOutput: string, {
   const hrefs = dom.window.document.getElementsByTagName('a')
   console.log(`rewriting ${hrefs.length} hrefs`)
   for (const el of Array.from(hrefs) as any[]) {
-    const href = el.getAttribute('xlink:href')
-    el.setAttribute('xlink:href', `/${prefix || ''}${href}.html`)
+    el.removeAttribute('xlink:href')
   }
 
   return dom.window.document.documentElement.outerHTML
