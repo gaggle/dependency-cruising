@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="fixtures/complex" type="NodeJSConfigurationType" application-parameters="-o ../../../dependency-report src" node-parameters="-r ts-node/register" path-to-js-file="../../../src/cli.ts" working-dir="$PROJECT_DIR$/test/fixtures/complex">
+  <configuration default="false" name="fixtures/complex" type="NodeJSConfigurationType" application-parameters="test/fixtures/complex/src" node-parameters="-r ts-node/register" path-to-js-file="src/cli.ts" working-dir="$PROJECT_DIR$">
     <method v="2" />
   </configuration>
 </component>
