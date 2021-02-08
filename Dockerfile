@@ -1,3 +1,4 @@
+# syntax = docker/dockerfile:1.0-experimental
 FROM node:14-alpine AS base
 
 # DEPENDENCIES
