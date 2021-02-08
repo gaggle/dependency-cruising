@@ -2,16 +2,24 @@
   "name": "dependency-cruising",
   "version": "0.0.1",
   "description": "Generate interactive HTML dependency diagram for an entire codebase",
+  "bin": {
+    "depcruising": "dist/cli.js"
+  },
   "main": "dist/cli",
   "scripts": {
     "build": "rm -rf dist && tsc --build && npm run build:fixcli",
     "build:fixcli": "sed -i.bak 's/env ts-node/env node/' dist/cli.* && rm -f dist/cli.*.bak && chmod +x dist/cli.js",
-    "docker:build": "docker build -t dependency-cruising .",
+    "clean": "rm -rf .docker dependency-report dist",
+    "docker:build": "DOCKER_BUILDKIT=1 docker build -t dependency-cruising .",
+    "docker:run": "docker run --rm -it --user \"$(id -u):$(id -g)\" -v \"$(pwd)\":/code -w /code dependency-cruising",
     "lint": "eslint . --ext .ts",
     "lint:fix": "npm run lint -- --fix",
     "test": "jest --testPathIgnorePatterns=integration-test",
     "test:integration": "jest --testPathPattern=integration-test"
   },
+  "files": [
+    "dist/"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gaggle/dependency-cruising.git"
@@ -26,12 +34,14 @@
     "node": ">=14.00.0"
   },
   "dependencies": {
-    "meow": "^9.0.0",
-    "shellac": "^0.4.1"
+    "dependency-cruiser": "gaggle/dependency-cruiser",
+    "jsdom": "^16.4.0",
+    "meow": "^9.0.0"
   },
   "devDependencies": {
     "@tsconfig/node14": "^1.0.0",
     "@types/jest": "^26.0.20",
+    "@types/jsdom": "^16.2.6",
     "@typescript-eslint/eslint-plugin": "^4.14.2",
     "@typescript-eslint/parser": "^4.14.2",
     "eslint": "^7.19.0",
@@ -40,13 +50,18 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.2.1",
     "jest": "^26.6.3",
+    "shellac": "^0.4.1",
     "ts-jest": "^26.5.0",
     "ts-node": "^9.1.1",
     "typescript": "^4.1.3"
   },
   "jest": {
     "preset": "ts-jest",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testTimeout": 30000,
+    "modulePathIgnorePatterns": [
+      "test/fixtures"
+    ]
   },
   "eslintConfig": {
     "env": {
@@ -66,7 +81,8 @@
       "@typescript-eslint"
     ],
     "ignorePatterns": [
-      "node_modules"
+      "node_modules",
+      "test/fixtures"
     ]
   }
 }

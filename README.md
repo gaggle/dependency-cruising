@@ -15,11 +15,13 @@ To run dependency-cruising you'll need Docker. Let's start with the basics, here
 
 ```bash
 $ docker run --rm jonlauridsen/dependency-cruising --help
+  Generate interactive HTML dependency diagram for an entire codebase
+
   Usage
-    $ dependency-cruising [-o output] <files_to_scan>
+    $ dependency-cruising [-o output] <paths_to_scan>
 
   Options
-    --output, -o  Directory to output dependency report
+    --output, -o  Directory to output dependency report, default=dependency-report
 
   Examples
     $ dependency-cruising .

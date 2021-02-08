@@ -1,5 +1,9 @@
 **
 !package*.json
+!README.md
 !src
 !test
 !tsconfig.json
+test/docker-image.integration-test.spec.ts
+test/fixtures
+# ↑ can't run these tests inside Docker build so might as well exclude it
