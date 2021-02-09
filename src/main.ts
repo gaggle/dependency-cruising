@@ -16,7 +16,7 @@ export async function main (outputTo: string, fileDirectoryArray: string[]): Pro
       const r = relative(baseDir, el)
       return r === '' ? '.' : r
     }))
-    console.log((await tree({ base: tmp.path, l: Number.MAX_VALUE })).report)
+    console.log('tmp', (await tree({ base: tmp.path, l: Number.MAX_VALUE })).report)
     await fs.emptyDir(outputTo)
     await fs.copy(tmp.path, outputTo)
   }, { unsafeCleanup: true })
@@ -25,16 +25,19 @@ export async function main (outputTo: string, fileDirectoryArray: string[]): Pro
 async function createGraphs (outputTo: string, baseDir: string, roots: string[]): Promise<void> {
   const scanReport = await runCruise(roots, cruiseOptions({ baseDir }))
   if (typeof scanReport.output === 'string') throw new Error('scan error')
-  console.log('scanReport', {
+  console.log('scanReport', JSON.stringify({
     baseDir,
     cwd: process.cwd(),
     outputTo,
     roots,
     scan: {
-      modulesLength: scanReport.output.modules.length,
-      exitCode: scanReport.exitCode
+      exitCode: scanReport.exitCode,
+      modules: scanReport.output.modules.map(el => ({
+        source: el.source, dependenciesLength: el.dependencies.length
+      })),
+      modulesLength: scanReport.output.modules.length
     }
-  })
+  }, null, 2))
 
   const indexReport = await runCruise(roots, cruiseOptions({
     baseDir,
