@@ -1,6 +1,7 @@
 import * as fs from 'fs-extra'
 import tree from 'tree-cli'
-import { basename, dirname, join, relative, resolve } from 'path'
+import { dirname, join, relative, resolve } from 'path'
+import { isEqual, uniqWith } from 'lodash'
 import { JSDOM } from 'jsdom'
 import { spawn } from 'child_process'
 import { withDir } from 'tmp-promise'
@@ -25,6 +26,7 @@ export async function main (outputTo: string, fileDirectoryArray: string[]): Pro
 async function createGraphs (outputTo: string, baseDir: string, roots: string[]): Promise<void> {
   const scanReport = await runCruise(roots, cruiseOptions({ baseDir }))
   if (typeof scanReport.output === 'string') throw new Error('scan error')
+  const scannedModules = scanReport.output.modules
   console.log('scanReport', JSON.stringify({
     baseDir,
     cwd: process.cwd(),
@@ -32,53 +34,157 @@ async function createGraphs (outputTo: string, baseDir: string, roots: string[])
     roots,
     scan: {
       exitCode: scanReport.exitCode,
-      modules: scanReport.output.modules.map(el => ({
+      modules: scannedModules.map(el => ({
         source: el.source, dependenciesLength: el.dependencies.length
       })),
-      modulesLength: scanReport.output.modules.length
+      modulesLength: scannedModules.length
     }
   }, null, 2))
 
-  const indexReport = await runCruise(roots, cruiseOptions({
-    baseDir,
-    collapsePattern: `(node_modules|(${roots.join('|')})/[^/]+)`,
-    outputType: 'archi'
-  }))
-  const prefix = 'files/'
-  const html = await graphvizToHtml(indexReport.output.toString(), {
-    baseDir,
-    prefix: prefix
-  })
-  const outputPath = join(outputTo, 'index.html')
-  await fs.outputFile(outputPath, html)
+  function getData () {
+    const data: any[] = []
+    for (const m of scannedModules) {
+      let parentCluster: any
+      if (m.source.includes('/')) {
+        parentCluster = {
+          type: 'cluster',
+          source: dirname(m.source)
+        }
 
-  // async function fileCruise (path: string) {
-  //   console.log('processing file', { path })
-  //   const fileReport = await runCruise(roots, cruiseOptions({
-  //     baseDir,
-  //     collapsePattern: 'node_modules/[^/]+',
-  //     focus: [basename(path)],
-  //     highlight: path.includes('node_modules/') ? dirname(path) : path,
-  //     outputType: 'dot'
-  //   }))
-  //   const html = await graphvizToHtml(fileReport.output.toString(), {
-  //     baseDir,
-  //     prefix:
-  //       prefix
-  //   })
-  //   const outputPath = join(outputTo, 'files', `${path}.html`)
-  //   await fs.outputFile(outputPath, html)
-  // }
-  //
-  // const files = new Set<string>(scanReport.output.modules.map(m => m.source))
-  // console.log(`files to process: ${files.size}`)
-  // await Promise.all(Array.from(files).slice(0, 10).map(fileCruise))
+        const paths = dirname(m.source).split('/')
+        for (const [i] of paths.entries()) {
+          const p = paths.slice(0, i + 1).join('/')
+          const cluster = {
+            type: 'cluster',
+            source: p
+          }
+          data.push(cluster)
+        }
+      } else {
+        // stdlib entry
+      }
+
+      data.push({
+        type: 'file',
+        source: m.source,
+        cluster: parentCluster,
+        dependencies: m.dependencies
+      })
+    }
+    return uniqWith(data, isEqual)
+  }
+
+  const data = getData()
+  console.log('got data', data.length)
+
+  function getClusterSources ({ except }: Partial<{ except: string }> = {}) {
+    const clusterSources = data.filter(el => el.type === 'cluster').map(el => el.source)
+    if (except === undefined) return clusterSources
+
+    const exceptComponents = except.split('/')
+    const removedNonshared = clusterSources.filter(el => {
+      const parts = el.split('/')
+      if (parts.length === 1) return true
+      return exceptComponents[0] === parts[0]
+    })
+    let noneOfThese: string[] = []
+    for (const [i] of removedNonshared.entries()) {
+      noneOfThese.push(exceptComponents.slice(0, i + 1).join('/'))
+    }
+    noneOfThese = uniqWith(noneOfThese, isEqual)
+    return removedNonshared.filter(el => !noneOfThese.includes(el))
+  }
+
+  const allClusterSources = getClusterSources()
+
+  async function renderCluster (clusterModule: { source: string }) {
+    const otherClusterSources = getClusterSources({ except: clusterModule.source })
+    const indexReport = await runCruise(roots, cruiseOptions({
+      baseDir,
+      focus: [clusterModule.source],
+      // collapsePattern: '^(node_modules|packages|src|lib|app|test|spec)/[^/]+', // <- default pattern
+      collapsePattern: `^(${otherClusterSources.join('|')})`,
+      outputType: 'archi'
+    }))
+    const document = await graphvizToHtml(indexReport.output.toString(), { baseDir })
+
+    const hrefElements = document.getElementsByTagName('a')
+    for (const el of Array.from(hrefElements) as HTMLAnchorElement[]) {
+      const href = el.getAttribute('xlink:href')
+      const prefix = allClusterSources.includes(href) ? 'clusters/' : 'files/'
+      el.setAttribute('xlink:href', `/${prefix || ''}${href}.html`)
+    }
+
+    const clusterElements = document.getElementsByClassName('cluster')
+    for (const el of Array.from(clusterElements) as Element[]) {
+      const rawTextContent = el.getElementsByTagName('title')[0].innerHTML
+      const textContent = rawTextContent.slice('cluster_'.length)
+      if (textContent === clusterModule.source) {
+        const pElement = el.getElementsByTagName('path')[0]
+        pElement.setAttribute('fill', 'rgb(218,112,214,0.25)')
+      }
+      const parent = el.parentElement!
+      const a = document.createElement('a')
+      parent.replaceChild(a, el)
+      a.appendChild(el)
+      a.setAttribute('xlink:href', `/clusters/${textContent}.html`)
+      a.setAttribute('xlink:title', `/clusters/${textContent}.html`)
+    }
+
+    const outputPath = join(outputTo, 'clusters', `${clusterModule.source}.html`)
+    await fs.outputFile(outputPath, document.documentElement.outerHTML)
+    process.stdout.write('o')
+  }
+
+  async function renderFile (el: { source: string, cluster: { source: string } }) {
+    const otherClusterSources = getClusterSources({ except: el.cluster.source })
+    const indexReport = await runCruise(roots, cruiseOptions({
+      baseDir,
+      collapsePattern: `^(${otherClusterSources.join('|')})`,
+      focus: [el.source],
+      highlight: el.source,
+      outputType: 'dot'
+    }))
+    const document = await graphvizToHtml(indexReport.output.toString(), { baseDir })
+
+    const hrefs = document.getElementsByTagName('a')
+    for (const el of Array.from(hrefs) as any[]) {
+      const href = el.getAttribute('xlink:href')
+      const prefix = allClusterSources.includes(href) ? 'clusters/' : 'files/'
+      el.setAttribute('xlink:href', `/${prefix || ''}${href}.html`)
+    }
+
+    const clusterElements = document.getElementsByClassName('cluster')
+    for (const el of Array.from(clusterElements) as Element[]) {
+      const rawTextContent = el.getElementsByTagName('title')[0].innerHTML
+      const textContent = rawTextContent.slice('cluster_'.length)
+      const parent = el.parentElement!
+      const a = document.createElement('a')
+      parent.replaceChild(a, el)
+      a.appendChild(el)
+      a.setAttribute('xlink:href', `/clusters/${textContent}.html`)
+      a.setAttribute('xlink:title', `/clusters/${textContent}.html`)
+    }
+
+    const outputPath = join(outputTo, 'files', `${el.source}.html`)
+    await fs.outputFile(outputPath, document.documentElement.outerHTML)
+    process.stdout.write('x')
+  }
+
+  await Promise.all(data.map(el => {
+    process.stdout.write('.')
+    switch (el.type) {
+      case 'cluster':
+        return renderCluster(el)
+      case 'file':
+        return renderFile(el)
+    }
+    return undefined
+  }))
+  console.log('done')
 }
 
-async function graphvizToHtml (cruiseOutput: string, {
-  baseDir,
-  prefix
-}: Partial<{ baseDir: string, prefix: string }> = {}): Promise<string> {
+async function graphvizToHtml (cruiseOutput: string, { baseDir }: Partial<{ baseDir: string }> = {}): Promise<Document> {
   // depcruise | dot
   const dot = spawn('dot', ['-T', 'svg'], { cwd: baseDir, shell: true })
   dot.stdin.write(cruiseOutput)
@@ -91,20 +197,5 @@ async function graphvizToHtml (cruiseOutput: string, {
 
   // html -> dom
   const dom = new JSDOM(await streamToBuffer(html.stdout))
-  const hrefs = dom.window.document.getElementsByTagName('a')
-  console.log(`rewriting ${hrefs.length} hrefs`)
-  for (const el of Array.from(hrefs) as any[]) {
-    const href = el.getAttribute('xlink:href')
-    el.setAttribute('xlink:href', `/${prefix || ''}${href}.html`)
-  }
-
-  return dom.window.document.documentElement.outerHTML
-}
-
-async function asyncIterToArray (iterator: AsyncIterable<any>): Promise<any[]> {
-  const elements: any[] = []
-  for await (const el of iterator) {
-    elements.push(el)
-  }
-  return elements
+  return dom.window.document
 }
