@@ -49,27 +49,27 @@ async function createGraphs (outputTo: string, baseDir: string, roots: string[])
   const outputPath = join(outputTo, 'index.html')
   await fs.outputFile(outputPath, html)
 
-  async function fileCruise (path: string) {
-    console.log('processing file', { path })
-    const fileReport = await runCruise(roots, cruiseOptions({
-      baseDir,
-      collapsePattern: 'node_modules/[^/]+',
-      focus: [basename(path)],
-      highlight: path.includes('node_modules/') ? dirname(path) : path,
-      outputType: 'dot'
-    }))
-    const html = await graphvizToHtml(fileReport.output.toString(), {
-      baseDir,
-      prefix:
-        prefix
-    })
-    const outputPath = join(outputTo, 'files', `${path}.html`)
-    await fs.outputFile(outputPath, html)
-  }
-
-  const files = new Set<string>(scanReport.output.modules.map(m => m.source))
-  console.log(`files to process: ${files.size}`)
-  await Promise.all(Array.from(files).slice(0, 10).map(fileCruise))
+  // async function fileCruise (path: string) {
+  //   console.log('processing file', { path })
+  //   const fileReport = await runCruise(roots, cruiseOptions({
+  //     baseDir,
+  //     collapsePattern: 'node_modules/[^/]+',
+  //     focus: [basename(path)],
+  //     highlight: path.includes('node_modules/') ? dirname(path) : path,
+  //     outputType: 'dot'
+  //   }))
+  //   const html = await graphvizToHtml(fileReport.output.toString(), {
+  //     baseDir,
+  //     prefix:
+  //       prefix
+  //   })
+  //   const outputPath = join(outputTo, 'files', `${path}.html`)
+  //   await fs.outputFile(outputPath, html)
+  // }
+  //
+  // const files = new Set<string>(scanReport.output.modules.map(m => m.source))
+  // console.log(`files to process: ${files.size}`)
+  // await Promise.all(Array.from(files).slice(0, 10).map(fileCruise))
 }
 
 async function graphvizToHtml (cruiseOutput: string, {
