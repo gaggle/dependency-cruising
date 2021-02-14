@@ -1,3 +1,5 @@
 dependency-report/
 dist/
+!test/fixtures/**/dist
 node_modules/
+!test/fixtures/**/node_modules
