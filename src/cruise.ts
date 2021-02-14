@@ -1,9 +1,20 @@
 import { futureCruise, ICruiseOptions, IReporterOutput, OutputType } from 'dependency-cruiser'
 import { IDotThemeEntry } from 'dependency-cruiser/types/reporter-options'
+import { ICruiseResult } from 'dependency-cruiser/types/cruise-result'
 
 export type CruiseOptions = ICruiseOptions & { baseDir?: string }
 
-export async function runCruise (roots: string[], cruiseOptions: CruiseOptions): Promise<IReporterOutput> {
+export async function scan (baseDir: string, roots: string[]): Promise<IReporterOutput & { output: ICruiseResult }> {
+  const scanReport = await runCruise(roots, cruiseOptions({ baseDir }))
+  if (typeof scanReport.output === 'string') throw new Error('scan error')
+  return scanReport as any
+}
+
+export function graph (roots: string[], cruiseOptions: CruiseOptions): Promise<IReporterOutput & { output: string }> {
+  return runCruise(roots, cruiseOptions) as any
+}
+
+async function runCruise (roots: string[], cruiseOptions: CruiseOptions): Promise<IReporterOutput> {
   return futureCruise(
     roots,
     { ...cruiseOptions, validate: false },

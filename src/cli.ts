@@ -2,7 +2,10 @@
 import meow from 'meow'
 import { promises as fs, Stats } from 'fs'
 import { resolve } from 'path'
+
+import { newBus } from './bus'
 import { main } from './main'
+import { ProgressReporter } from './reporters'
 
 const DEFAULT_OUTPUT = 'dependency-report'
 
@@ -56,9 +59,9 @@ async function normalizeFlags (flags: typeof cli.flags): Promise<typeof cli.flag
 
 async function bootstrap (input: typeof cli.input, flags: typeof cli.flags) {
   const normalizedFlags = await normalizeFlags(flags)
-  console.time('main')
-  await main(normalizedFlags.output, input)
-  console.timeEnd('main')
+  const reporter = new ProgressReporter()
+  const bus = newBus(reporter.handler.bind(reporter))
+  await main(normalizedFlags.output, input, { bus })
 }
 
 bootstrap(cli.input, cli.flags)
