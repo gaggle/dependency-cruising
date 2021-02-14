@@ -1,5 +1,6 @@
 #!/usr/bin/env ts-node
 import meow from 'meow'
+import { cpus } from 'os'
 import { promises as fs, Stats } from 'fs'
 import { resolve } from 'path'
 
@@ -8,13 +9,15 @@ import { main } from './main'
 import { ProgressReporter } from './reporters'
 
 const DEFAULT_OUTPUT = 'dependency-report'
+const DEFAULT_CONCURRENCY = cpus().length
 
 const cli = meow(`
   Usage
     $ dependency-cruising [-o output] <paths_to_scan>
 
   Options
-    --output, -o  Directory to output dependency report, default=${DEFAULT_OUTPUT}
+    --output, -o        Directory to output dependency report, default=${DEFAULT_OUTPUT}
+    --concurrency, -c   How many jobs to process at a time, default=<number of cpus>
 
   Examples
     $ dependency-cruising .
@@ -32,6 +35,11 @@ const cli = meow(`
       type: 'string',
       alias: 'o',
       default: DEFAULT_OUTPUT
+    },
+    concurrency: {
+      type: 'number',
+      alias: 'c',
+      default: DEFAULT_CONCURRENCY
     }
   }
 })
@@ -53,7 +61,12 @@ async function normalizeFlags (flags: typeof cli.flags): Promise<typeof cli.flag
     flags.output = resolve(flags.output)
   }
 
+  function normalizeConcurrency () {
+    if (flags.concurrency < 1) throw new Error(`${flags.concurrency} must be at least 1`)
+  }
+
   await normalizeOutput()
+  await normalizeConcurrency()
   return flags
 }
 
@@ -61,7 +74,7 @@ async function bootstrap (input: typeof cli.input, flags: typeof cli.flags) {
   const normalizedFlags = await normalizeFlags(flags)
   const reporter = new ProgressReporter()
   const bus = newBus(reporter.handler.bind(reporter))
-  await main(normalizedFlags.output, input, { bus })
+  await main(normalizedFlags.output, input, { bus, concurrency: flags.concurrency })
 }
 
 bootstrap(cli.input, cli.flags)

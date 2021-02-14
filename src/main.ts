@@ -5,19 +5,20 @@ import { performance } from 'perf_hooks'
 import { withDir } from 'tmp-promise'
 
 import { Bus, defaultBus } from './bus'
-import { scan } from './cruise'
 import { createJobs, parseDependencyCruiserModules } from './cruiseParser'
 import { Job } from './types'
+import { scan } from './cruise'
 
-export function main (outputTo: string, roots: string[], { bus }: Partial<{ bus: Bus }> = {}): Promise<void> {
-  return main_(outputTo, roots, { bus: bus || defaultBus() })
+interface MainOpts {
+  bus: Bus;
+  concurrency: number;
 }
 
-async function jobRunner (jobs: Job[]) {
-  await pMap<Job, void>(jobs, job => job.fn(), { concurrency: 4 })
+export function main (outputTo: string, roots: string[], { bus, concurrency }: Partial<MainOpts> = {}): Promise<void> {
+  return main_(outputTo, roots, { bus: bus || defaultBus(), concurrency: concurrency || 1 })
 }
 
-export async function main_ (outputTo: string, roots: string[], { bus }: { bus: Bus }) {
+export async function main_ (outputTo: string, roots: string[], { bus, concurrency }: MainOpts) {
   const start = performance.now()
   const baseDir = resolve(join(roots[0], '..'))
   // ↑ For now lets assume the first root is the directory from which we should do our scanning.
@@ -39,6 +40,7 @@ export async function main_ (outputTo: string, roots: string[], { bus }: { bus: 
 
     await bus.emit('app.started', {
       baseDir,
+      concurrency,
       cwd: process.cwd(),
       outputTo,
       relativeRoots,
@@ -48,13 +50,16 @@ export async function main_ (outputTo: string, roots: string[], { bus }: { bus: 
 
     const scanReport = await scan(baseDir, relativeRoots)
     await bus.emit('app.scan.done', {
-      modulesCount: scanReport.output.modules.length,
-      exitCode: scanReport.exitCode
+      exitCode: scanReport.exitCode,
+      modules: scanReport.output.modules
     })
 
     const modules = parseDependencyCruiserModules(scanReport.output.modules)
+    await bus.emit('app.parse.done', { modules })
+
     const jobs = await createJobs(modules, tmp.path, baseDir, relativeRoots, { bus })
-    await jobRunner(jobs)
+    await bus.emit('app.jobs.created', { jobs })
+    await jobRunner(jobs, concurrency)
     await bus.emit('app.jobs.done')
 
     await fs.emptyDir(outputTo)
@@ -64,4 +69,8 @@ export async function main_ (outputTo: string, roots: string[], { bus }: { bus: 
     const end = performance.now()
     await bus.emit('app.end', { doneInMs: end - start })
   }, { unsafeCleanup: true })
+}
+
+async function jobRunner (jobs: Job[], concurrency: number) {
+  await pMap<Job, void>(jobs, job => job.fn(), { concurrency: concurrency })
 }

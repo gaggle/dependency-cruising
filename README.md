@@ -21,7 +21,8 @@ $ docker run --rm jonlauridsen/dependency-cruising --help
     $ dependency-cruising [-o output] <paths_to_scan>
 
   Options
-    --output, -o  Directory to output dependency report, default=dependency-report
+    --output, -o        Directory to output dependency report, default=dependency-report
+    --concurrency, -c   How many jobs to process at a time, default=<number of cpus>
 
   Examples
     $ dependency-cruising .
