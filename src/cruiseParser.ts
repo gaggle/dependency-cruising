@@ -32,18 +32,19 @@ export function parseDependencyCruiserModules (cruiserModules: IModule[]): Modul
       case (isEqual(collection[el.source], el)):
         break
       default:
-        throw new Error(`error adding element\ncluster element:${collection[el.source]}\nelement: ${el}`)
+        throw new Error(`error adding element\ncollection:${JSON.stringify(collection[el.source])}\nelement: ${JSON.stringify(el)}`)
     }
   }
 
   function create<T extends Module> (collection: { [key: string]: T }, el: T): T {
     switch (true) {
       case (collection[el.source] === undefined):
+        collection[el.source] = el
         return el
       case (isEqual(collection[el.source], el)):
         return collection[el.source]
       default:
-        throw new Error(`error creating element\ncluster element:${collection[el.source]}\nelement: ${el}`)
+        throw new Error(`error creating element\ncollection:${collection[el.source]}\nelement: ${el}`)
     }
   }
 
@@ -54,7 +55,7 @@ export function parseDependencyCruiserModules (cruiserModules: IModule[]): Modul
     // ↑ Only stdlib entries have no slashes
 
     const parentSource = dirname(cruiserModule.source)
-    const parentCluster = create<ClusterModule>(clusters, {
+    const parentCluster = create(clusters, {
       kind: 'cluster',
       source: parentSource,
       matchesDoNotFollow: cruiserModule.matchesDoNotFollow
