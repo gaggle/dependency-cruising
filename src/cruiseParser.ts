@@ -4,6 +4,7 @@ import { IModule } from 'dependency-cruiser'
 import { isEqual, uniqWith } from 'lodash'
 
 import { Bus } from './bus'
+import { cancelCheck } from './cancellation'
 import { cruiseOptions, graph } from './cruise'
 import { Job } from './types'
 import { JSDOM } from 'jsdom'
@@ -83,7 +84,9 @@ export function parseDependencyCruiserModules (cruiserModules: IModule[]): Modul
 export async function createJobs (modules: Module[], outputTo: string, baseDir: string, roots: string[], { bus }: { bus: Bus }): Promise<Job[]> {
   const allClusterSources = getClusterSources(modules)
 
-  async function unifiedRender (id: string, el: Module) {
+  async function unifiedRender (id: string, el: Module): Promise<void> {
+    cancelCheck()
+
     await bus.emit('job.start', { id, source: el.source, kind: el.kind })
 
     const otherClusterSources = getClusterSources(modules, { except: el.kind === 'cluster' ? el.source : el.cluster.source })
@@ -128,6 +131,8 @@ export async function createJobs (modules: Module[], outputTo: string, baseDir: 
       a.setAttribute('xlink:href', `/clusters/${textContent}.html`)
       a.setAttribute('xlink:title', `/clusters/${textContent}.html`)
     }
+
+    cancelCheck()
 
     const outputPath = join(outputTo, el.kind === 'file' ? 'files' : 'clusters', `${el.source}.html`)
     await fs.outputFile(outputPath, document.documentElement.outerHTML)
