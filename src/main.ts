@@ -5,6 +5,7 @@ import { performance } from 'perf_hooks'
 import { withDir } from 'tmp-promise'
 
 import { Bus, defaultBus } from './bus'
+import { cancelCheck } from './cancellation'
 import { createJobs, parseDependencyCruiserModules } from './cruiseParser'
 import { Job } from './types'
 import { scan } from './cruise'
@@ -48,20 +49,26 @@ export async function main_ (outputTo: string, roots: string[], { bus, concurren
       tmpDir: tmp.path
     })
 
+    cancelCheck()
     const scanReport = await scan(baseDir, relativeRoots)
     await bus.emit('app.scan.done', {
       exitCode: scanReport.exitCode,
       modules: scanReport.output.modules
     })
 
+    cancelCheck()
     const modules = parseDependencyCruiserModules(scanReport.output.modules)
     await bus.emit('app.parse.done', { modules })
 
+    cancelCheck()
     const jobs = await createJobs(modules, tmp.path, baseDir, relativeRoots, { bus })
     await bus.emit('app.jobs.created', { jobs })
+
+    cancelCheck()
     await jobRunner(jobs, concurrency)
     await bus.emit('app.jobs.done')
 
+    cancelCheck()
     await fs.emptyDir(outputTo)
     await fs.copy(tmp.path, outputTo)
     // ↑ Since the report got generated fine it's time to pour tmp into the desired output directory
