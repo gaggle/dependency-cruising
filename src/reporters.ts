@@ -87,12 +87,22 @@ class JobTracker {
 export class ProgressReporter {
   private appStartedState: Partial<BusEventData['app.started']>
   private readonly bar: SingleBar
+  private readonly cancelSignal: AbortSignal
   private readonly jobTracker: JobTracker
 
-  constructor () {
+  constructor ({ cancelSignal }: Partial<{ cancelSignal: AbortSignal }>) {
     this.appStartedState = {}
     this.bar = new cliProgress.SingleBar({ hideCursor: true }, cliProgress.Presets.shades_classic)
+    this.cancelSignal = cancelSignal || new AbortController().signal
     this.jobTracker = new JobTracker()
+
+    this.cancelSignal.onabort = () => {
+      if (this.bar) this.bar.stop()
+    }
+  }
+
+  isCancelled (): boolean {
+    return this.cancelSignal.aborted
   }
 
   handler: Reporter = async (eventName, eventData) => {
@@ -126,14 +136,14 @@ export class ProgressReporter {
       case 'app.jobs.created':
         const appJobsCreated = eventData as BusEventData['app.jobs.created']
 
-        this.bar.start(appJobsCreated.jobs.length + 1, 0)
+        if (!this.isCancelled()) this.bar.start(appJobsCreated.jobs.length + 1, 0)
         // ↑ The "+ 1" is to have a step for the "app.jobs.done" events
         for (const job of appJobsCreated.jobs) {
           this.jobTracker.addPending(job.id)
         }
         break
       case 'app.jobs.done':
-        this.bar.increment()
+        if (!this.isCancelled()) this.bar.increment()
         break
       case 'app.end':
         const appEnd = eventData as BusEventData['app.end']
@@ -144,7 +154,7 @@ export class ProgressReporter {
         metrics.totalTimeElapsed = { duration: appEnd.doneInMs }
         const tmpContent = await tree({ base: this.appStartedState.outputTo, l: Number.MAX_VALUE })
 
-        this.bar.stop()
+        if (!this.isCancelled()) this.bar.stop()
         console.log('Performance report:')
         console.table(mapValues(metrics, ({ duration }) => `${(duration / 1000).toFixed(2)}s`))
         console.log('Content of output:')
@@ -159,7 +169,7 @@ export class ProgressReporter {
         const jobDone = eventData as BusEventData['job.done']
 
         this.jobTracker.setDone(jobDone.id)
-        this.bar.increment()
+        if (!this.isCancelled()) this.bar.increment()
         break
       default:
         break
