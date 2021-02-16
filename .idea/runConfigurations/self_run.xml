@@ -1,0 +1,5 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="self-run" type="NodeJSConfigurationType" application-parameters="-c=1 --ignore=test/fixtures/**/* src test" node-parameters="-r ts-node/register" path-to-js-file="src/cli.ts" working-dir="$PROJECT_DIR$">
+    <method v="2" />
+  </configuration>
+</component>

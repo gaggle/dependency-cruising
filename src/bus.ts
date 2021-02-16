@@ -1,5 +1,9 @@
 import Emittery from 'emittery'
+import { IModule } from 'dependency-cruiser'
+
 import { consoleReporter, Reporter } from './reporters'
+import { Module } from './cruiseParser'
+import { Job } from './types'
 
 type jobDefaults = {
   id: string
@@ -7,12 +11,15 @@ type jobDefaults = {
 
 export type BusEventData = {
   'app.end': { doneInMs: number },
+  'app.jobs.created': { jobs: Job[] },
   'app.jobs.done': undefined,
-  'app.scan.done': { exitCode: number, modulesCount: number },
+  'app.parse.done': { modules: Module[] },
+  'app.scan.done': { exitCode: number, modules: IModule[] },
   'app.started': {
     baseDir: string,
+    concurrency: number,
     cwd: string,
-    outputTo:string,
+    outputTo: string,
     relativeRoots: string[],
     roots: string[],
     tmpDir: string,
