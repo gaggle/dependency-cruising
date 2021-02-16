@@ -4,6 +4,7 @@ import tree from 'tree-cli'
 import { mapValues } from 'lodash'
 
 import { BusEventData } from './bus'
+import { cancelSignal as globalCancelSignal } from './cancellation'
 
 export type Reporter = (eventName: keyof BusEventData, eventData: BusEventData[keyof BusEventData]) => void
 
@@ -93,7 +94,7 @@ export class ProgressReporter {
   constructor ({ cancelSignal }: Partial<{ cancelSignal: AbortSignal }>) {
     this.appStartedState = {}
     this.bar = new cliProgress.SingleBar({ hideCursor: true }, cliProgress.Presets.shades_classic)
-    this.cancelSignal = cancelSignal || new AbortController().signal
+    this.cancelSignal = cancelSignal || globalCancelSignal
     this.jobTracker = new JobTracker()
 
     this.cancelSignal.onabort = () => {

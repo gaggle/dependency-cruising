@@ -51,6 +51,7 @@ export async function main_ (outputTo: string, roots: string[], { bus, concurren
 
     cancelCheck()
     const scanReport = await scan(baseDir, relativeRoots)
+    cancelCheck()
     await bus.emit('app.scan.done', {
       exitCode: scanReport.exitCode,
       modules: scanReport.output.modules

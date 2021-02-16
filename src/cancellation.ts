@@ -9,4 +9,5 @@ export function cancelCheck (): void {
 
 export function cancel (): void {
   cancelController.abort()
+  console.log('cancel controller triggered')
 }

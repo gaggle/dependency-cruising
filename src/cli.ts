@@ -4,12 +4,25 @@ import { cpus } from 'os'
 import { promises as fs, Stats } from 'fs'
 import { resolve } from 'path'
 
-import { newBus } from './bus'
+import { cancel, cancelSignal } from './cancellation'
 import { main } from './main'
+import { newBus } from './bus'
 import { ProgressReporter } from './reporters'
 
-const DEFAULT_OUTPUT = 'dependency-report'
 const DEFAULT_CONCURRENCY = cpus().length
+const DEFAULT_OUTPUT = 'dependency-report'
+let QUIT_COUNT = 0
+
+process.on('SIGINT', function () {
+  console.log('SIGINT')
+  QUIT_COUNT += 1
+  if (QUIT_COUNT > 1) {
+    console.log('Force quitting')
+    process.exit(2)
+  }
+  console.log('Exiting gracefully, ^C again to force quit')
+  cancel()
+})
 
 const cli = meow(`
   Usage
@@ -71,10 +84,17 @@ async function normalizeFlags (flags: typeof cli.flags): Promise<typeof cli.flag
 }
 
 async function bootstrap (input: typeof cli.input, flags: typeof cli.flags) {
-  const normalizedFlags = await normalizeFlags(flags)
-  const reporter = new ProgressReporter()
+  console.log('booting')
+  const reporter = new ProgressReporter({ cancelSignal })
   const bus = newBus(reporter.handler.bind(reporter))
-  await main(normalizedFlags.output, input, { bus, concurrency: flags.concurrency })
+  const normalizedFlags = await normalizeFlags(flags)
+  try {
+    await main(normalizedFlags.output, input, { bus, concurrency: flags.concurrency })
+  } catch (err) {
+    if (err.message !== 'dependency-cruising cancelled') throw err
+    console.error('Dependency Cruising gracefully exited')
+    process.exit(1)
+  }
 }
 
 bootstrap(cli.input, cli.flags)
