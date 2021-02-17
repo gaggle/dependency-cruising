@@ -24,7 +24,7 @@ $ docker run --rm jonlauridsen/dependency-cruising --help
     --output, -o        Directory to output dependency report, default=dependency-report
     --include, -i       Only include modules matching the regex (can be specified multiple times)
     --exclude, -x       Exclude all modules matching the regex (can be specified multiple times)
-    --concurrency, -c   How many jobs to process at a time, default=<number of cpus>
+    --concurrency, -c   How many jobs to process at a time, default=<number of cpus / 2>
 
   Examples
     $ dependency-cruising .
