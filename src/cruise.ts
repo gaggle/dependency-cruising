@@ -26,8 +26,24 @@ async function runCruise (roots: string[], cruiseOptions: CruiseOptions): Promis
   )
 }
 
-export function cruiseOptions ({ baseDir, collapsePattern, focus, highlight, outputType, prefix }: Partial<{
-  baseDir: string, collapsePattern: string, focus: string[], highlight: string, outputType: OutputType, prefix: string
+export function cruiseOptions ({
+  baseDir,
+  collapsePattern,
+  exclude,
+  focus,
+  highlight,
+  includeOnly,
+  outputType,
+  prefix
+}: Partial<{
+  baseDir: string,
+  collapsePattern: string,
+  exclude?: string[],
+  focus: string[],
+  highlight: string,
+  includeOnly?: string[],
+  outputType: OutputType,
+  prefix: string,
 }> = {}): CruiseOptions {
   const modules: IDotThemeEntry[] = [
     {
@@ -236,6 +252,8 @@ export function cruiseOptions ({ baseDir, collapsePattern, focus, highlight, out
         'npm-no-pkg'
       ]
     },
+    includeOnly,
+    exclude,
     enhancedResolveOptions: {
       /* List of strings to consider as 'exports' fields in package.json. Use
          ['exports'] when you use packages that use such a field and your environment
