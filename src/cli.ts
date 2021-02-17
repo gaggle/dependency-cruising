@@ -71,6 +71,10 @@ if (cli.flags.help) {
 }
 
 async function normalizeFlags (flags: typeof cli.flags): Promise<typeof cli.flags> {
+  function normalizeConcurrency () {
+    if (flags.concurrency < 1) throw new Error(`${flags.concurrency} must be at least 1`)
+  }
+
   async function normalizeOutput () {
     let stats: Stats | undefined
     try {
@@ -83,12 +87,8 @@ async function normalizeFlags (flags: typeof cli.flags): Promise<typeof cli.flag
     flags.output = resolve(flags.output)
   }
 
-  function normalizeConcurrency () {
-    if (flags.concurrency < 1) throw new Error(`${flags.concurrency} must be at least 1`)
-  }
-
-  await normalizeOutput()
   await normalizeConcurrency()
+  await normalizeOutput()
   return flags
 }
 
