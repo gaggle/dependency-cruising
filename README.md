@@ -18,16 +18,21 @@ $ docker run --rm jonlauridsen/dependency-cruising --help
   Generate interactive HTML dependency diagram for an entire codebase
 
   Usage
-    $ dependency-cruising [-o output] <paths_to_scan>
+    $ dependency-cruising [-o output] [-i regex]... [-x regex]... [-c concurrency] <paths_to_scan>
 
   Options
     --output, -o        Directory to output dependency report, default=dependency-report
+    --include, -i       Only include modules matching the regex (can be specified multiple times)
+    --exclude, -x       Exclude all modules matching the regex (can be specified multiple times)
     --concurrency, -c   How many jobs to process at a time, default=<number of cpus>
 
   Examples
     $ dependency-cruising .
-    $ dependency-cruising -o ./foo .
+    $ dependency-cruising --output report .
     $ dependency-cruising src/services
+    $ dependency-cruising --concurrency 1 .
+    $ dependency-cruising --include src --exclude node_modules .
+    $ dependency-cruising --exclude ^src/*.spec --exclude src/.*/*.d.ts src/services
 ```
 
 But to really make use of dependency-cruising you'll need to give it access to your codebase, otherwise it'll have

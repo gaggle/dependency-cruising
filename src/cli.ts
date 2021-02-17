@@ -20,16 +20,21 @@ if (process.pid === 1) {
 
 const cli = meow(`
   Usage
-    $ dependency-cruising [-o output] <paths_to_scan>
+    $ dependency-cruising [-o output] [-i regex]... [-x regex]... [-c concurrency] <paths_to_scan>
 
   Options
     --output, -o        Directory to output dependency report, default=${DEFAULT_OUTPUT}
+    --include, -i       Only include modules matching the regex (can be specified multiple times)
+    --exclude, -x       Exclude all modules matching the regex (can be specified multiple times)
     --concurrency, -c   How many jobs to process at a time, default=<number of cpus>
 
   Examples
     $ dependency-cruising .
-    $ dependency-cruising -o ./foo .
+    $ dependency-cruising --output report .
     $ dependency-cruising src/services
+    $ dependency-cruising --concurrency 1 .
+    $ dependency-cruising --include src --exclude node_modules .
+    $ dependency-cruising --exclude ^src/*.spec --exclude src/.*/*.d.ts src/services
 `, {
   allowUnknownFlags: false,
   autoHelp: false,
@@ -42,6 +47,16 @@ const cli = meow(`
       type: 'string',
       alias: 'o',
       default: DEFAULT_OUTPUT
+    },
+    include: {
+      type: 'string',
+      alias: 'i',
+      isMultiple: true
+    },
+    exclude: {
+      type: 'string',
+      alias: 'x',
+      isMultiple: true
     },
     concurrency: {
       type: 'number',
@@ -81,7 +96,12 @@ async function bootstrap (input: typeof cli.input, flags: typeof cli.flags) {
   const normalizedFlags = await normalizeFlags(flags)
   const reporter = new ProgressReporter()
   const bus = newBus(reporter.handler.bind(reporter))
-  await main(normalizedFlags.output, input, { bus, concurrency: flags.concurrency })
+  await main(normalizedFlags.output, input, {
+    bus,
+    concurrency: flags.concurrency,
+    include: flags.include,
+    exclude: flags.exclude
+  })
 }
 
 bootstrap(cli.input, cli.flags)
