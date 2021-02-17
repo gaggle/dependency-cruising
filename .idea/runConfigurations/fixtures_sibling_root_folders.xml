@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="fixtures/sibling-root-folders" type="NodeJSConfigurationType" application-parameters="test/fixtures/sibling-root-folders/src" node-parameters="-r ts-node/register" path-to-js-file="src/cli.ts" working-dir="$PROJECT_DIR$">
+  <configuration default="false" name="fixtures/sibling-root-folders" type="NodeJSConfigurationType" application-parameters="-c 1 test/fixtures/sibling-root-folders/src" node-parameters="-r ts-node/register" path-to-js-file="src/cli.ts" working-dir="$PROJECT_DIR$">
     <method v="2" />
   </configuration>
 </component>

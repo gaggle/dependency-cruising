@@ -5,7 +5,7 @@
     <scripts>
       <script value="docker:run" />
     </scripts>
-    <arguments value="-- test/fixtures/simple" />
+    <arguments value="-- test/fixtures/sibling-root-folders" />
     <node-interpreter value="project" />
     <envs />
     <method v="2">
