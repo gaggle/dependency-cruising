@@ -4,8 +4,15 @@ import { ICruiseResult } from 'dependency-cruiser/types/cruise-result'
 
 export type CruiseOptions = ICruiseOptions & { baseDir?: string }
 
-export async function scan (baseDir: string, roots: string[]): Promise<IReporterOutput & { output: ICruiseResult }> {
-  const scanReport = await runCruise(roots, cruiseOptions({ baseDir }))
+export async function scan (baseDir: string, roots: string[], {
+  include,
+  exclude
+}: { include?: string[]; exclude?: string[] } = {}): Promise<IReporterOutput & { output: ICruiseResult }> {
+  const scanReport = await runCruise(roots, cruiseOptions({
+    baseDir,
+    exclude,
+    includeOnly: include
+  }))
   if (typeof scanReport.output === 'string') throw new Error('scan error')
   return scanReport as any
 }
@@ -26,8 +33,24 @@ async function runCruise (roots: string[], cruiseOptions: CruiseOptions): Promis
   )
 }
 
-export function cruiseOptions ({ baseDir, collapsePattern, focus, highlight, outputType, prefix }: Partial<{
-  baseDir: string, collapsePattern: string, focus: string[], highlight: string, outputType: OutputType, prefix: string
+export function cruiseOptions ({
+  baseDir,
+  collapsePattern,
+  exclude,
+  focus,
+  highlight,
+  includeOnly,
+  outputType,
+  prefix
+}: Partial<{
+  baseDir: string,
+  collapsePattern: string,
+  exclude?: string[],
+  focus: string[],
+  highlight: string,
+  includeOnly?: string[],
+  outputType: OutputType,
+  prefix: string,
 }> = {}): CruiseOptions {
   const modules: IDotThemeEntry[] = [
     {
@@ -236,6 +259,8 @@ export function cruiseOptions ({ baseDir, collapsePattern, focus, highlight, out
         'npm-no-pkg'
       ]
     },
+    includeOnly,
+    exclude,
     enhancedResolveOptions: {
       /* List of strings to consider as 'exports' fields in package.json. Use
          ['exports'] when you use packages that use such a field and your environment
