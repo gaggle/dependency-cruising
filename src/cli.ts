@@ -8,7 +8,7 @@ import { newBus } from './bus'
 import { main } from './main'
 import { ProgressReporter } from './reporters'
 
-const DEFAULT_CONCURRENCY = cpus().length
+const DEFAULT_CONCURRENCY = Math.round(cpus().length / 2)
 const DEFAULT_OUTPUT = 'dependency-report'
 
 if (process.pid === 1) {
@@ -26,7 +26,7 @@ const cli = meow(`
     --output, -o        Directory to output dependency report, default=${DEFAULT_OUTPUT}
     --include, -i       Only include modules matching the regex (can be specified multiple times)
     --exclude, -x       Exclude all modules matching the regex (can be specified multiple times)
-    --concurrency, -c   How many jobs to process at a time, default=<number of cpus>
+    --concurrency, -c   How many jobs to process at a time, default=<number of cpus / 2>
 
   Examples
     $ dependency-cruising .
