@@ -2,7 +2,7 @@
 
 Generate interactive HTML dependency diagrams, like this:
 
-[![Screenshot from the interactive layered HTML report](./docs/html-example.png)](https://google.com)
+![Screenshot from the interactive layered HTML report](./docs/html-example.png)
 
 _(Click the nodes to traverse the dependency tree, 
 click the "src" box to go back upwards)_
