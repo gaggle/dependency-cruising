@@ -3,7 +3,9 @@
 Generate interactive HTML dependency diagrams, like this:
 
 [![Screenshot from the interactive layered HTML report](./docs/html-example.png)](https://google.com)
-_Click the nodes to traverse the dependency tree._
+
+_(Click the nodes to traverse the dependency tree, 
+click the "src" box to go back upwards)_
 
 ---
 This is made possible by calling into the amazing
