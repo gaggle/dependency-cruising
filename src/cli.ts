@@ -8,8 +8,15 @@ import { newBus } from './bus'
 import { main } from './main'
 import { ProgressReporter } from './reporters'
 
-const DEFAULT_OUTPUT = 'dependency-report'
 const DEFAULT_CONCURRENCY = cpus().length
+const DEFAULT_OUTPUT = 'dependency-report'
+
+if (process.pid === 1) {
+  process.on('SIGINT', function () {
+    process.exit(2)
+  })
+  console.log('Interrupt handling initialized')
+}
 
 const cli = meow(`
   Usage
