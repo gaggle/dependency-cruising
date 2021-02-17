@@ -12,13 +12,20 @@ import { scan } from './cruise'
 interface MainOpts {
   bus: Bus;
   concurrency: number;
+  include?: string[];
+  exclude?: string[];
 }
 
-export function main (outputTo: string, roots: string[], { bus, concurrency }: Partial<MainOpts> = {}): Promise<void> {
-  return main_(outputTo, roots, { bus: bus || defaultBus(), concurrency: concurrency || 1 })
+export function main (outputTo: string, roots: string[], opts: Partial<MainOpts> = {}): Promise<void> {
+  const resolvedOpts: MainOpts = {
+    bus: defaultBus(),
+    concurrency: 1,
+    ...opts
+  }
+  return main_(outputTo, roots, resolvedOpts)
 }
 
-export async function main_ (outputTo: string, roots: string[], { bus, concurrency }: MainOpts) {
+export async function main_ (outputTo: string, roots: string[], { bus, concurrency, include, exclude }: MainOpts) {
   const start = performance.now()
   const baseDir = resolve(join(roots[0], '..'))
   // ↑ For now lets assume the first root is the directory from which we should do our scanning.
@@ -45,10 +52,12 @@ export async function main_ (outputTo: string, roots: string[], { bus, concurren
       outputTo,
       relativeRoots,
       roots,
-      tmpDir: tmp.path
+      tmpDir: tmp.path,
+      include,
+      exclude
     })
 
-    const scanReport = await scan(baseDir, relativeRoots)
+    const scanReport = await scan(baseDir, relativeRoots, { include, exclude })
     await bus.emit('app.scan.done', {
       exitCode: scanReport.exitCode,
       modules: scanReport.output.modules
@@ -57,7 +66,7 @@ export async function main_ (outputTo: string, roots: string[], { bus, concurren
     const modules = parseDependencyCruiserModules(scanReport.output.modules)
     await bus.emit('app.parse.done', { modules })
 
-    const jobs = await createJobs(modules, tmp.path, baseDir, relativeRoots, { bus })
+    const jobs = await createJobs(modules, tmp.path, baseDir, relativeRoots, { bus, include, exclude })
     await bus.emit('app.jobs.created', { jobs })
     await jobRunner(jobs, concurrency)
     await bus.emit('app.jobs.done')
