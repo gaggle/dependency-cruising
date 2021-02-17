@@ -4,8 +4,15 @@ import { ICruiseResult } from 'dependency-cruiser/types/cruise-result'
 
 export type CruiseOptions = ICruiseOptions & { baseDir?: string }
 
-export async function scan (baseDir: string, roots: string[]): Promise<IReporterOutput & { output: ICruiseResult }> {
-  const scanReport = await runCruise(roots, cruiseOptions({ baseDir }))
+export async function scan (baseDir: string, roots: string[], {
+  include,
+  exclude
+}: { include?: string[]; exclude?: string[] } = {}): Promise<IReporterOutput & { output: ICruiseResult }> {
+  const scanReport = await runCruise(roots, cruiseOptions({
+    baseDir,
+    exclude,
+    includeOnly: include
+  }))
   if (typeof scanReport.output === 'string') throw new Error('scan error')
   return scanReport as any
 }

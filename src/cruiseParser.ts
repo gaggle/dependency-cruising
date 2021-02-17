@@ -80,7 +80,11 @@ export function parseDependencyCruiserModules (cruiserModules: IModule[]): Modul
   return [...(Object.values(clusters)), ...(Object.values(files))]
 }
 
-export async function createJobs (modules: Module[], outputTo: string, baseDir: string, roots: string[], { bus }: { bus: Bus }): Promise<Job[]> {
+export async function createJobs (modules: Module[], outputTo: string, baseDir: string, roots: string[], {
+  bus,
+  include,
+  exclude
+}: { bus: Bus, include?: string[], exclude?: string[] }): Promise<Job[]> {
   const allClusterSources = getClusterSources(modules)
 
   async function unifiedRender (id: string, el: Module) {
@@ -93,7 +97,9 @@ export async function createJobs (modules: Module[], outputTo: string, baseDir: 
       focus: [el.source],
       collapsePattern: otherClusterSources.length ? `^(${otherClusterSources.join('|')})` : undefined,
       highlight: el.kind === 'file' ? el.source : undefined,
-      outputType: el.kind === 'file' ? 'dot' : 'archi'
+      outputType: el.kind === 'file' ? 'dot' : 'archi',
+      includeOnly: include,
+      exclude
     }))
     await bus.emit('job.progress.ran-graph', {
       id,
