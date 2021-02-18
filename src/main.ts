@@ -49,12 +49,12 @@ export async function main_ (outputTo: string, roots: string[], { bus, concurren
       baseDir,
       concurrency,
       cwd: process.cwd(),
+      exclude,
+      include,
       outputTo,
       relativeRoots,
       roots,
-      tmpDir: tmp.path,
-      include,
-      exclude
+      tmpDir: tmp.path
     })
 
     const scanReport = await scan(baseDir, relativeRoots, { include, exclude })
