@@ -12,18 +12,20 @@ import { streamToBuffer } from './utils/io'
 
 export interface ClusterModule {
   kind: 'cluster'
-  source: string
   matchesDoNotFollow?: boolean
+  output: string
+  source: string
 }
 
 export type FileModule = IModule & {
-  kind: 'file'
   cluster: ClusterModule,
+  kind: 'file'
+  output: string
 }
 
 export type Module = ClusterModule | FileModule
 
-export function parseDependencyCruiserModules (cruiserModules: IModule[]): Module[] {
+export function parseDependencyCruiserModules (cruiserModules: IModule[], relativeTo: string): Module[] {
   function add<T extends Module> (collection: { [key: string]: T }, el: T): void {
     switch (true) {
       case (collection[el.source] === undefined):
@@ -58,7 +60,8 @@ export function parseDependencyCruiserModules (cruiserModules: IModule[]): Modul
     const parentCluster = create(clusters, {
       kind: 'cluster',
       source: parentSource,
-      matchesDoNotFollow: cruiserModule.matchesDoNotFollow
+      matchesDoNotFollow: cruiserModule.matchesDoNotFollow,
+      output: parentSource === relativeTo ? 'index.html' : join('clusters', `${parentSource}.html`)
     })
 
     const splitted = parentSource.split('/')
@@ -67,14 +70,16 @@ export function parseDependencyCruiserModules (cruiserModules: IModule[]): Modul
       add(clusters, {
         kind: 'cluster',
         source: sourceChunk,
-        matchesDoNotFollow: cruiserModule.matchesDoNotFollow
+        matchesDoNotFollow: cruiserModule.matchesDoNotFollow,
+        output: parentSource === relativeTo ? 'index.html' : join('clusters', `${sourceChunk}.html`)
       })
     }
 
     add(files, {
       ...cruiserModule,
       kind: 'file',
-      cluster: parentCluster
+      cluster: parentCluster,
+      output: join('files', `${cruiserModule.source}.html`)
     })
   }
   return [...(Object.values(clusters)), ...(Object.values(files))]
@@ -131,11 +136,16 @@ export async function createJobs (modules: Module[], outputTo: string, baseDir: 
       const a = document.createElement('a')
       parent.replaceChild(a, element)
       a.appendChild(element)
-      a.setAttribute('xlink:href', `/clusters/${textContent}.html`)
-      a.setAttribute('xlink:title', `/clusters/${textContent}.html`)
+      if (textContent === roots[0]) {
+        a.setAttribute('xlink:href', '/index.html')
+        a.setAttribute('xlink:title', '/index.html')
+      } else {
+        a.setAttribute('xlink:href', `/clusters/${textContent}.html`)
+        a.setAttribute('xlink:title', `/clusters/${textContent}.html`)
+      }
     }
 
-    const outputPath = join(outputTo, el.kind === 'file' ? 'files' : 'clusters', `${el.source}.html`)
+    const outputPath = join(outputTo, el.output)
     await fs.outputFile(outputPath, document.documentElement.outerHTML)
     await bus.emit('job.done', { id, kind: el.kind })
   }

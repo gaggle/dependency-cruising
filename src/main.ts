@@ -63,7 +63,7 @@ export async function main_ (outputTo: string, roots: string[], { bus, concurren
       modules: scanReport.output.modules
     })
 
-    const modules = parseDependencyCruiserModules(scanReport.output.modules)
+    const modules = parseDependencyCruiserModules(scanReport.output.modules, relativeRoots[0])
     await bus.emit('app.parse.done', { modules })
 
     const jobs = await createJobs(modules, tmp.path, baseDir, relativeRoots, { bus, include, exclude })
