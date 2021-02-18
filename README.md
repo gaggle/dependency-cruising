@@ -8,8 +8,8 @@ _(Click the nodes to traverse the dependency tree,
 click the "src" box to go back upwards)_
 
 ---
-This is made possible by calling into the amazing
-[dependency cruiser](https://github.com/sverweij/dependency-cruiser) tool.
+This is made possible by using the amazing
+[dependency cruiser](https://github.com/sverweij/dependency-cruiser) tool under-the-hood.
 
 ## Usage
 
