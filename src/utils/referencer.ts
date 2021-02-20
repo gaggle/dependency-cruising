@@ -1,4 +1,5 @@
 import { isEqual } from 'lodash'
+import { stringify } from './stringify'
 
 export class Referencer<El> {
   modulesById: { [key: string]: El } = {}
@@ -11,7 +12,9 @@ export class Referencer<El> {
       case (isEqual(this.modulesById[id], el)):
         return this.modulesById[id] as T
       default:
-        throw new Error(`error creating element ${id}\n:${JSON.stringify(el)}`)
+        throw new Error(`error creating element '${id}':
+${stringify(el, 2)}
+${stringify(this.modulesById, 2)}`)
     }
   }
 

@@ -4,10 +4,12 @@ import { join, relative, resolve } from 'path'
 import { performance } from 'perf_hooks'
 import { withDir } from 'tmp-promise'
 
-import { Bus, defaultBus } from './bus'
-import { createJobs, parseDependencyCruiserModules } from './cruiseParser'
-import { Job } from './types'
+import { Bus } from './types/bus'
+import { createJobs } from './jobCreator'
+import { defaultBus } from './bus'
+import { Job } from './types/job'
 import { scan } from './cruise'
+import { cruiseParser } from './cruiseParser'
 
 interface MainOpts {
   bus: Bus;
@@ -16,18 +18,18 @@ interface MainOpts {
   exclude?: string[];
 }
 
-export function main (outputTo: string, roots: string[], opts: Partial<MainOpts> = {}): Promise<void> {
+export function main (outputTo: string, root: string, opts: Partial<MainOpts> = {}): Promise<void> {
   const resolvedOpts: MainOpts = {
     bus: defaultBus(),
     concurrency: 1,
     ...opts
   }
-  return main_(outputTo, roots, resolvedOpts)
+  return main_(outputTo, root, resolvedOpts)
 }
 
-export async function main_ (outputTo: string, roots: string[], { bus, concurrency, include, exclude }: MainOpts) {
+export async function main_ (outputTo: string, root: string, { bus, concurrency, include, exclude }: MainOpts) {
   const start = performance.now()
-  const baseDir = resolve(join(roots[0], '..'))
+  const baseDir = resolve(join(root, '..'))
   // ↑ For now lets assume the first root is the directory from which we should do our scanning.
   // There is support here for multiple roots and the basedir assumption will fall together
   // when the first root is not a shared base for the rest.
@@ -39,11 +41,9 @@ export async function main_ (outputTo: string, roots: string[], { bus, concurren
     // ↑ Output everything into this folder and only flip it to the real `outputTo` on success,
     // to avoid partial overwrites of user's files.
 
-    const relativeRoots = roots.map(el => {
-      const r = relative(baseDir, el)
-      return r === '' ? '.' : r
-    })
-    // ↑ Turn all the roots into paths relative to baseDir, because our report will be centered on baseDir
+    let relativeRoot = relative(baseDir, root)
+    if (relativeRoot === '') relativeRoot = '.'
+    // ↑ Turn the root into paths relative to baseDir, because our report will be centered on baseDir
 
     await bus.emit('app.started', {
       baseDir,
@@ -52,23 +52,34 @@ export async function main_ (outputTo: string, roots: string[], { bus, concurren
       exclude,
       include,
       outputTo,
-      relativeRoots,
-      roots,
+      relativeRoot,
+      root,
       tmpDir: tmp.path
     })
 
-    const scanReport = await scan(baseDir, relativeRoots, { include, exclude })
+    const scanReport = await scan(baseDir, [relativeRoot], { include, exclude })
     await bus.emit('app.scan.done', {
       exitCode: scanReport.exitCode,
       modules: scanReport.output.modules
     })
 
-    const modules = parseDependencyCruiserModules(scanReport.output.modules, relativeRoots[0])
-    await bus.emit('app.parse.done', { modules })
+    const modules = cruiseParser(scanReport.output.modules)
+    const rootModule = modules.filter(m => m.source === relativeRoot)[0]
+    if (!rootModule) throw new Error('Error identifying root module')
+    await bus.emit('app.parse.done', { modules, rootModule })
 
-    const jobs = await createJobs(modules, tmp.path, baseDir, relativeRoots, { bus, include, exclude })
+    const jobs = await createJobs({
+      baseDir: baseDir,
+      exclude,
+      include,
+      modules,
+      outputTo: tmp.path,
+      reportProgress: (id: string, params: any) => bus.emit('job.progress', { ...params, id }),
+      root: relativeRoot
+    })
     await bus.emit('app.jobs.created', { jobs })
-    await jobRunner(jobs, concurrency)
+
+    await jobRunner(jobs, { bus, concurrency })
     await bus.emit('app.jobs.done')
 
     await fs.emptyDir(outputTo)
@@ -80,6 +91,11 @@ export async function main_ (outputTo: string, roots: string[], { bus, concurren
   }, { unsafeCleanup: true })
 }
 
-async function jobRunner (jobs: Job[], concurrency: number) {
-  await pMap<Job, void>(jobs, job => job.fn(), { concurrency: concurrency })
+async function jobRunner (jobs: Job[], { bus, concurrency }: { bus: Bus, concurrency: number }) {
+  await pMap<Job, void>(jobs, async job => {
+    await bus.emit('job.start', { id: job.id })
+    const result = await job.fn()
+    await bus.emit('job.done', { id: job.id })
+    return result
+  }, { concurrency: concurrency })
 }

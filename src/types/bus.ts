@@ -11,19 +11,9 @@ export type BusEventData = {
   'app.end': { doneInMs: number }
   'app.jobs.created': { jobs: Job[] }
   'app.jobs.done': undefined,
-  'app.parse.done': { modules: Module[] }
+  'app.parse.done': { modules: Module[], rootModule: Module }
   'app.scan.done': { exitCode: number, modules: IModule[] }
-  'app.started': {
-    baseDir: string
-    concurrency: number
-    cwd: string
-    exclude?: string[]
-    include?: string[]
-    outputTo: string
-    relativeRoots: string[]
-    roots: string[]
-    tmpDir: string
-  };
+  'app.started': { [key: string]: any, outputTo: string };
   'job.done': jobDefaults
   'job.progress': undefined
   'job.start': jobDefaults

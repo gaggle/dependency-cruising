@@ -100,7 +100,10 @@ export class ProgressReporter {
 
   constructor () {
     this.appStartedState = {}
-    this.bar = new cliProgress.SingleBar({ hideCursor: true }, cliProgress.Presets.shades_classic)
+    this.bar = new cliProgress.SingleBar({
+      hideCursor: true,
+      clearOnComplete: false
+    }, cliProgress.Presets.shades_classic)
     this.jobTracker = new JobTracker()
   }
 
@@ -115,31 +118,33 @@ export class ProgressReporter {
       case 'app.scan.done':
         const appScanDone = eventData as BusEventData['app.scan.done']
         const iModules = appScanDone.modules
-        const activeIModules = iModules.filter(m => !m.matchesDoNotFollow)
+        const activeIModules = iModules.filter(m => !m.matchesDoNotFollow && !m.couldNotResolve)
 
         console.log(
           'Initial scan done,' +
           ` found ${activeIModules.length} active files to process` +
-          ` (out of ${iModules.length} files, so ${iModules.length - activeIModules.length} were marked as do not follow)`
+          ` (out of ${iModules.length} files, so ${iModules.length - activeIModules.length} were found but skipped)`
         )
         break
       case 'app.parse.done':
         const appParseDone = eventData as BusEventData['app.parse.done']
-        const clusters = appParseDone.modules.filter(m => m.kind === 'cluster' && !m.matchesDoNotFollow)
+        const clusters = appParseDone.modules.filter(m => m.kind === 'cluster')
         const files = appParseDone.modules.filter(m => m.kind === 'file' && !m.matchesDoNotFollow)
 
         console.log(`Parsed ${files.length + clusters.length} active modules to process,` +
           ` ${files.length} files / ${clusters.length} clusters` +
-          ` (out of ${appParseDone.modules.length} possible modules)`)
+          ` (out of ${appParseDone.modules.length} possible modules).` +
+          ` Root module is '${appParseDone.rootModule.source}'`)
         break
       case 'app.jobs.created':
         const appJobsCreated = eventData as BusEventData['app.jobs.created']
-
-        this.bar.start(appJobsCreated.jobs.length + 1, 0)
-        // ↑ The "+ 1" is to have a step for the "app.jobs.done" events
         for (const job of appJobsCreated.jobs) {
           this.jobTracker.addPending(job.id)
         }
+
+        console.log(`Created ${appJobsCreated.jobs.length} jobs`)
+        this.bar.start(appJobsCreated.jobs.length + 1, 0)
+        // ↑ The "+ 1" is to have a step for the "app.jobs.done" events
         break
       case 'app.jobs.done':
         this.bar.increment()

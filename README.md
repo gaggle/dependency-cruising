@@ -20,7 +20,7 @@ $ docker run --rm jonlauridsen/dependency-cruising --help
   Generate interactive HTML dependency diagram for an entire codebase
 
   Usage
-    $ dependency-cruising [-o output] [-i regex]... [-x regex]... [-c concurrency] <paths_to_scan>
+    $ dependency-cruising [-o output] [-i regex]... [-x regex]... [-c concurrency] <path_to_scan>
 
   Options
     --output, -o        Directory to output dependency report, default=dependency-report

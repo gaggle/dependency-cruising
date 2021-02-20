@@ -1,6 +1,11 @@
+/* eslint-disable no-use-before-define */
+
+import { IDependency } from 'dependency-cruiser'
+
 interface BaseModule {
+  /** Unique Id */
   id: string
-  matchesDoNotFollow?: boolean
+  clusters: ClusterModule[],
   output: string
   source: string
 }
@@ -11,7 +16,8 @@ export type ClusterModule = BaseModule & {
 
 export type FileModule = BaseModule & {
   kind: 'file'
-  cluster: ClusterModule,
+  dependencies: IDependency[],
+  matchesDoNotFollow?: boolean
 }
 
 export type Module = ClusterModule | FileModule

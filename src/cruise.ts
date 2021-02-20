@@ -1,5 +1,5 @@
 import { futureCruise, ICruiseOptions, IReporterOutput, OutputType } from 'dependency-cruiser'
-import { IDotThemeEntry } from 'dependency-cruiser/types/reporter-options'
+import { IDotThemeEntry, IReporterOptions } from 'dependency-cruiser/types/reporter-options'
 import { ICruiseResult } from 'dependency-cruiser/types/cruise-result'
 
 export type CruiseOptions = ICruiseOptions & { baseDir?: string }
@@ -46,7 +46,7 @@ export function cruiseOptions ({
   baseDir: string,
   collapsePattern: string,
   exclude?: string[],
-  focus: string[],
+  focus?: string[],
   highlight: string,
   includeOnly?: string[],
   outputType: OutputType,
@@ -85,6 +85,54 @@ export function cruiseOptions ({
       },
       attributes: { color: 'orchid', penwidth: 2 }
     })
+  }
+  const reporterOptions: IReporterOptions = {
+    dot: {
+      /* Options to tweak the appearance of your graph.See
+         https://github.com/sverweij/dependency-cruiser/blob/master/doc/options-reference.md#reporteroptions
+         for details and some examples. If you don't specify a theme
+         don't worry - dependency-cruiser will fall back to the default one.
+      */
+      theme: {
+        graph: {
+          /* use splines: "ortho" for straight lines. Be aware though
+            graphviz might take a long time calculating ortho(gonal)
+            routings.
+         */
+          // splines: 'ortho'
+        },
+        modules,
+        dependencies: [
+          {
+            criteria: { 'rules[0].severity': 'error' },
+            attributes: { fontcolor: 'red', color: 'red' }
+          },
+          {
+            criteria: { 'rules[0].severity': 'warn' },
+            attributes: { fontcolor: 'orange', color: 'orange' }
+          },
+          {
+            criteria: { 'rules[0].severity': 'info' },
+            attributes: { fontcolor: 'blue', color: 'blue' }
+          }
+          // {
+          //   criteria: { resolved: '^src/model' },
+          //   attributes: { color: '#0000ff77' }
+          // },
+          // {
+          //   criteria: { resolved: '^src/view' },
+          //   attributes: { color: '#00770077' }
+          // }
+        ]
+      }
+    }
+  }
+  if (collapsePattern) {
+    // pattern of modules that can be consolidated in the detailed
+    // graphical dependency graph. The default pattern in this configuration
+    // collapses everything in node_modules to one folder deep so you see
+    // the external modules, but not the innards your app depends upon.
+    reporterOptions.dot!.collapsePattern = collapsePattern
   }
   return {
     baseDir,
@@ -247,9 +295,9 @@ export function cruiseOptions ({
     },
     tsPreCompilationDeps: true,
     outputType,
-    focus: focus ? `(${focus.join('|')})` : undefined,
+    focus,
     doNotFollow: {
-      path: 'node_modules',
+      path: ['node_modules'],
       dependencyTypes: [
         'npm',
         'npm-dev',
@@ -281,53 +329,6 @@ export function cruiseOptions ({
       */
       conditionNames: ['import', 'require', 'node', 'default']
     },
-    reporterOptions: {
-      dot: {
-        /* pattern of modules that can be consolidated in the detailed
-           graphical dependency graph. The default pattern in this configuration
-           collapses everything in node_modules to one folder deep so you see
-           the external modules, but not the innards your app depends upon.
-         */
-        collapsePattern,
-
-        /* Options to tweak the appearance of your graph.See
-           https://github.com/sverweij/dependency-cruiser/blob/master/doc/options-reference.md#reporteroptions
-           for details and some examples. If you don't specify a theme
-           don't worry - dependency-cruiser will fall back to the default one.
-        */
-        theme: {
-          graph: {
-            /* use splines: "ortho" for straight lines. Be aware though
-              graphviz might take a long time calculating ortho(gonal)
-              routings.
-           */
-            // splines: 'ortho'
-          },
-          modules,
-          dependencies: [
-            {
-              criteria: { 'rules[0].severity': 'error' },
-              attributes: { fontcolor: 'red', color: 'red' }
-            },
-            {
-              criteria: { 'rules[0].severity': 'warn' },
-              attributes: { fontcolor: 'orange', color: 'orange' }
-            },
-            {
-              criteria: { 'rules[0].severity': 'info' },
-              attributes: { fontcolor: 'blue', color: 'blue' }
-            }
-            // {
-            //   criteria: { resolved: '^src/model' },
-            //   attributes: { color: '#0000ff77' }
-            // },
-            // {
-            //   criteria: { resolved: '^src/view' },
-            //   attributes: { color: '#00770077' }
-            // }
-          ]
-        }
-      }
-    }
+    reporterOptions
   }
 }

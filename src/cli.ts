@@ -20,7 +20,7 @@ if (process.pid === 1) {
 
 const cli = meow(`
   Usage
-    $ dependency-cruising [-o output] [-i regex]... [-x regex]... [-c concurrency] <paths_to_scan>
+    $ dependency-cruising [-o output] [-i regex]... [-x regex]... [-c concurrency] <path_to_scan>
 
   Options
     --output, -o        Directory to output dependency report, default=${DEFAULT_OUTPUT}
@@ -70,12 +70,18 @@ if (cli.flags.help) {
   cli.showHelp(0)
 }
 
-async function normalizeFlags (flags: typeof cli.flags): Promise<typeof cli.flags> {
-  function normalizeConcurrency () {
+interface ParsedCli {
+  scan: string,
+  flags: typeof cli.flags
+}
+
+async function parseCli ({ input, flags }: { input: typeof cli.input, flags: typeof cli.flags }): Promise<ParsedCli> {
+  function parseConcurrency () {
     if (flags.concurrency < 1) throw new Error(`${flags.concurrency} must be at least 1`)
+    return flags.concurrency
   }
 
-  async function normalizeOutput () {
+  async function parseOutput () {
     let stats: Stats | undefined
     try {
       stats = await fs.stat(flags.output)
@@ -87,16 +93,23 @@ async function normalizeFlags (flags: typeof cli.flags): Promise<typeof cli.flag
     flags.output = resolve(flags.output)
   }
 
-  await normalizeConcurrency()
-  await normalizeOutput()
-  return flags
+  async function parseScanPath () {
+    const scan = input.shift()
+    if (!scan) throw new Error('must specify a scan path')
+    await fs.stat(scan)
+    return scan
+  }
+
+  await parseConcurrency()
+  await parseOutput()
+  const scan = await parseScanPath()
+  return { scan, flags }
 }
 
-async function bootstrap (input: typeof cli.input, flags: typeof cli.flags) {
-  const normalizedFlags = await normalizeFlags(flags)
+async function bootstrap ({ scan, flags }: ParsedCli) {
   const reporter = new ProgressReporter()
   const bus = newBus(reporter.handler.bind(reporter))
-  await main(normalizedFlags.output, input, {
+  await main(flags.output, scan, {
     bus,
     concurrency: flags.concurrency,
     include: flags.include,
@@ -104,7 +117,8 @@ async function bootstrap (input: typeof cli.input, flags: typeof cli.flags) {
   })
 }
 
-bootstrap(cli.input, cli.flags)
+parseCli(cli)
+  .then(bootstrap)
   .catch(err => {
     throw err
   })
