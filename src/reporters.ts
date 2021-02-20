@@ -3,7 +3,7 @@ import cliProgress, { SingleBar } from 'cli-progress'
 import tree from 'tree-cli'
 import { mapValues } from 'lodash'
 
-import { BusEventData } from './bus'
+import { BusEventData } from './types/bus'
 
 export type Reporter = (eventName: keyof BusEventData, eventData: BusEventData[keyof BusEventData]) => void
 
