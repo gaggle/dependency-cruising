@@ -22,6 +22,8 @@ class JobTracker {
     [key: string]: TrackedJob
   }
 
+  private warnings: string[] = []
+
   constructor () {
     this.trackedJobs = {}
   }
@@ -29,7 +31,7 @@ class JobTracker {
   addPending (id: string): void {
     const existingJob = this.getJob(id)
     if (existingJob) {
-      console.warn(`Duplicate job '${id}' already exists: ${JSON.stringify(existingJob)}`)
+      this.warnings.push(`Duplicate job '${id}' already exists: ${JSON.stringify(existingJob)}`)
       return
     }
     this.setJob(id, { state: 'pending' })
@@ -38,10 +40,10 @@ class JobTracker {
   setStarted (id: string): void {
     const existingJob = this.getJob(id)
     if (!existingJob) {
-      console.warn(`Untracked job '${id}' marked as started`)
+      this.warnings.push(`Untracked job '${id}' marked as started`)
       this.setJob(id, { state: 'unknown', startedAt: Date.now() })
     } else if (existingJob.state !== 'pending') {
-      console.warn(`Non-pending job '${id}' marked as started: ${JSON.stringify(existingJob)}`)
+      this.warnings.push(`Non-pending job '${id}' marked as started: ${JSON.stringify(existingJob)}`)
       this.setJob(id, { ...existingJob, state: 'unknown', startedAt: Date.now() })
     } else {
       this.setJob(id, { ...existingJob, state: 'started', startedAt: Date.now() })
@@ -51,10 +53,10 @@ class JobTracker {
   setDone (id: string): void {
     const existingJob = this.getJob(id)
     if (!existingJob) {
-      console.warn(`Untracked job '${id}' marked as done`)
+      this.warnings.push(`Untracked job '${id}' marked as done`)
       this.setJob(id, { state: 'unknown', completedAt: Date.now() })
     } else if (existingJob.state !== 'started') {
-      console.warn(`Non-started job '${id}' marked as done: ${JSON.stringify(existingJob)}`)
+      this.warnings.push(`Non-started job '${id}' marked as done: ${JSON.stringify(existingJob)}`)
       this.setJob(id, { ...existingJob, state: 'unknown', completedAt: Date.now() })
     } else {
       this.setJob(id, { ...existingJob, state: 'done', completedAt: Date.now() })
@@ -64,8 +66,11 @@ class JobTracker {
   getMetrics (): { [key: string]: { duration: number } } {
     const jobMetrics: { [key: string]: { duration: number } } = {}
     for (const [jobId, trackedJob] of Object.entries(this.trackedJobs)) {
-      if (trackedJob.state !== 'done') {
-        console.warn(`Dangling job '${jobId}': ${JSON.stringify(trackedJob)}`)
+      if (trackedJob.state === 'unknown') {
+        // Do nothing because unknown jobs get their own warn entries on creation
+        continue
+      } else if (trackedJob.state !== 'done') {
+        this.warnings.push(`Dangling job '${jobId}': ${JSON.stringify(trackedJob)}`)
         continue
       }
       jobMetrics[jobId] = {
@@ -73,6 +78,10 @@ class JobTracker {
       }
     }
     return jobMetrics
+  }
+
+  getWarnings (): string[] {
+    return [...this.warnings]
   }
 
   private getJob (id: string): TrackedJob | undefined {
@@ -143,10 +152,12 @@ export class ProgressReporter {
         metrics.average = { duration: avg }
         metrics.totalTimeElapsed = { duration: appEnd.doneInMs }
         const tmpContent = await tree({ base: this.appStartedState.outputTo, l: Number.MAX_VALUE })
+        const warnings = this.jobTracker.getWarnings()
 
         this.bar.stop()
         console.log('Performance report:')
         console.table(mapValues(metrics, ({ duration }) => `${(duration / 1000).toFixed(2)}s`))
+        if (warnings.length > 0) console.warn(`WARNINGS:\n  ${warnings.join('\n  ')}\n`)
         console.log('Content of output:')
         console.log(tmpContent.report)
         break
