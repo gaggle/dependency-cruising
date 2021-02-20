@@ -77,7 +77,10 @@ class JobTracker {
         duration: trackedJob.completedAt - trackedJob.startedAt
       }
     }
-    return jobMetrics
+    const sorted = Object.entries(jobMetrics)
+      .sort(([, aVal], [, bVal]) => aVal.duration - bVal.duration)
+      .reverse()
+    return Object.assign({}, ...sorted.map(([k, v]) => ({ [k]: v })))
   }
 
   getWarnings (): string[] {
