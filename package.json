@@ -1,6 +1,6 @@
 {
   "name": "dependency-cruising",
-  "version": "0.0.1",
+  "version": "0.0.9",
   "description": "Generate interactive HTML dependency diagram for an entire codebase",
   "bin": {
     "depcruising": "dist/cli.js"
