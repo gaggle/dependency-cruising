@@ -99,7 +99,7 @@ export function cruiseOptions ({
             graphviz might take a long time calculating ortho(gonal)
             routings.
          */
-          // splines: 'ortho'
+          splines: 'ortho'
         },
         modules,
         dependencies: [
