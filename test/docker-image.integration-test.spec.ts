@@ -2,7 +2,7 @@ import shellac from 'shellac'
 import packageJson from '../package.json'
 import { join } from 'path'
 
-const runCmd = 'docker run --rm -i --user "$(id -u):$(id -g)" -v "$(pwd)":/code -w /code dependency-cruising'
+const runCmd = 'docker run --rm -i --user "$(id -u):$(id -g)" -v "$(pwd)":/code -w /code jonlauridsen/dependency-cruising'
 const fixtures = join(__dirname, 'fixtures')
 
 describe('docker image', () => {
